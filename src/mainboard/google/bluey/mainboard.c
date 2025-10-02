@@ -10,6 +10,12 @@
 #include <soc/qupv3_config_common.h>
 #include <soc/qup_se_handlers_common.h>
 #include "board.h"
+#include <soc/usb/usb.h>
+
+static void setup_usb(void)
+{
+	setup_usb_host0();
+}
 
 void lb_add_boot_mode(struct lb_header *header)
 {
@@ -62,6 +68,7 @@ static void mainboard_init(struct device *dev)
 	qupv3_se_fw_load_and_init(QUPV3_1_SE0, SE_PROTOCOL_I2C, MIXED); /* Touch I2C */
 	qupv3_se_fw_load_and_init(QUPV3_1_SE6, SE_PROTOCOL_UART, FIFO); /* BT UART */
 	qupv3_se_fw_load_and_init(QUPV3_0_SE0, SE_PROTOCOL_I2C, MIXED); /* Trackpad I2C */
+	qupv3_se_fw_load_and_init(QUPV3_0_SE1, SE_PROTOCOL_I2C, MIXED); /* USB-A retimer */
 	if (CONFIG(MAINBOARD_HAS_FINGERPRINT_VIA_SPI))
 		qupv3_se_fw_load_and_init(QUPV3_2_SE2, SE_PROTOCOL_SPI, MIXED); /* Fingerprint SPI */
 
@@ -75,6 +82,9 @@ static void mainboard_init(struct device *dev)
 	 */
 	if (CONFIG(MAINBOARD_HAS_FINGERPRINT))
 		gpio_output(GPIO_FP_RST_L, 1);
+
+	/* Setup USB related initial config */
+	setup_usb();
 
 	display_startup();
 }

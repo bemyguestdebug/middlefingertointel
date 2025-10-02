@@ -164,6 +164,9 @@ ramstage-$(CONFIG_ACPI_NHLT) += nhlt.c
 ramstage-$(CONFIG_PAYLOAD_FIT_SUPPORT) += fit.c
 ramstage-$(CONFIG_PAYLOAD_FIT_SUPPORT) += fit_payload.c
 
+ramstage-$(CONFIG_VGA) += vga_gfx.c
+romstage-$(CONFIG_ROMSTAGE_VGA) += vga_gfx.c
+
 romstage-$(CONFIG_TIMER_QUEUE) += timer_queue.c
 ramstage-$(CONFIG_TIMER_QUEUE) += timer_queue.c
 
@@ -442,8 +445,7 @@ $(2)-compression := $$(BMP_LOGO_COMPRESS_FLAG)
 endef
 
 ifneq ($(CONFIG_HAVE_CUSTOM_BMP_LOGO),y)
-$(eval $(call add_bmp_logo_file_to_cbfs,CONFIG_BMP_LOGO, logo.bmp,\
-	      CONFIG_BMP_LOGO_FILE_NAME))
+$(eval $(call add_bmp_logo_file_to_cbfs,CONFIG_BMP_LOGO,logo.bmp,CONFIG_BMP_LOGO_FILE_NAME))
 endif
 
 $(eval $(call add_bmp_logo_file_to_cbfs,CONFIG_PLATFORM_HAS_LOW_BATTERY_INDICATOR, \

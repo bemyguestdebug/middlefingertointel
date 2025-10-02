@@ -70,6 +70,14 @@ enum spi100_speed {
 #define SPI100_HOST_PREF_CONFIG		0x2c
 #define   SPI_RD4DW_EN_HOST		BIT(15)
 
+#define SPI_STATUS			0x4c
+#define   SPI_DONE_BYTE_COUNT_SHIFT	0
+#define   SPI_DONE_BYTE_COUNT_MASK	0xff
+#define   SPI_FIFO_WR_PTR_SHIFT		8
+#define   SPI_FIFO_WR_PTR_MASK		0x7f
+#define   SPI_FIFO_RD_PTR_SHIFT		16
+#define   SPI_FIFO_RD_PTR_MASK		0x7f
+
 #define SPI_ROM_PAGE			0x5c
 #define   SPI_ROM_PAGE_SEL		(BIT(0) | BIT(1))
 
@@ -81,6 +89,7 @@ enum spi100_speed {
 /* AMD has re-purposed this unused SPI controller register bit as a semaphore to synchronize
    access to the SPI controller between SMM and non-SMM software/OS driver. */
 #define   SPI_SEMAPHORE_DRIVER_LOCKED	BIT(4)
+#define   SPI_SEMAPHORE_BIOS_LOCKED	BIT(3)
 
 struct spi_config {
 	/*

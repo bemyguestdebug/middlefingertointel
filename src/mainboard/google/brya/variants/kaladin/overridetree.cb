@@ -1,4 +1,8 @@
 fw_config
+	field TABLET_MODE 0 0
+		option TABLET_MODE_ABSENT 0
+		option TABLET_MODE_PRESENT 1
+	end
 	field THERMAL_SOLUTION 1 1
 		option THERMAL_SOLUTION_6W	0
 		option THERMAL_SOLUTION_15W	1
@@ -8,8 +12,10 @@ fw_config
 		option MB_USB_2C_1A 1
 	end
 	field TOUCH_PANEL 4 5
-		option TOUCH_ELAN_TOP   0
-		option TOUCH_ELAN_DBTS  1
+		option TOUCH_ELAN_TOP   	0
+		option TOUCH_ELAN_DBTS  	1
+		option TOUCH_GTH1563_TOP	2
+		option TOUCH_GTH7503_TOP	3
 	end
 	field WIFI_SAR 13 15
 		option WIFI_SAR_ID_0 0
@@ -25,6 +31,51 @@ end
 
 chip soc/intel/alderlake
 	register "sagv" = "SaGv_Enabled"
+
+	# EMMC Tx CMD Delay
+	# Refer to EDS-Vol2-42.3.7.
+	# [14:8] steps of delay for DDR mode, each 125ps, range: 0 - 39.
+	# [6:0] steps of delay for SDR mode, each 125ps, range: 0 - 39.
+	register "common_soc_config.emmc_dll.emmc_tx_cmd_cntl" = "0x505"
+
+	# EMMC TX DATA Delay 1
+	# Refer to EDS-Vol2-42.3.8.
+	# [14:8] steps of delay for HS400, each 125ps, range: 0 - 78.
+	# [6:0] steps of delay for SDR104/HS200, each 125ps, range: 0 - 79.
+	register "common_soc_config.emmc_dll.emmc_tx_data_cntl1" = "0x909"
+
+	# EMMC TX DATA Delay 2
+	# Refer to EDS-Vol2-42.3.9.
+	# [30:24] steps of delay for SDR50, each 125ps, range: 0 - 79.
+	# [22:16] steps of delay for DDR50, each 125ps, range: 0 - 78.
+	# [14:8] steps of delay for SDR25/HS50, each 125ps, range: 0 -79.
+	# [6:0] steps of delay for SDR12, each 125ps. Range: 0 - 79.
+	register "common_soc_config.emmc_dll.emmc_tx_data_cntl2" = "0x1C2A2828"
+
+	# EMMC RX CMD/DATA Delay 1
+	# Refer to EDS-Vol2-42.3.10.
+	# [30:24] steps of delay for SDR50, each 125ps, range: 0 - 119.
+	# [22:16] steps of delay for DDR50, each 125ps, range: 0 - 78.
+	# [14:8] steps of delay for SDR25/HS50, each 125ps, range: 0 - 119.
+	# [6:0] steps of delay for SDR12, each 125ps, range: 0 - 119.
+	register "common_soc_config.emmc_dll.emmc_rx_cmd_data_cntl1" = "0x1C1B1D3C"
+
+	# EMMC RX CMD/DATA Delay 2
+	# Refer to EDS-Vol2-42.3.12.
+	# [17:16] stands for Rx Clock before Output Buffer,
+	#         00: Rx clock after output buffer,
+	#         01: Rx clock before output buffer,
+	#         10: Automatic selection based on working mode.
+	#         11: Reserved
+	# [14:8] steps of delay for Auto Tuning Mode, each 125ps, range: 0 - 39.
+	# [6:0] steps of delay for HS200, each 125ps, range: 0 - 79.
+	register "common_soc_config.emmc_dll.emmc_rx_cmd_data_cntl2" = "0x1004C"
+
+	# EMMC Rx Strobe Delay
+	# Refer to EDS-Vol2-42.3.11.
+	# [14:8] Rx Strobe Delay DLL 1(HS400 Mode), each 125ps, range: 0 - 39.
+	# [6:0] Rx Strobe Delay DLL 2(HS400 Mode), each 125ps, range: 0 - 39.
+	register "common_soc_config.emmc_dll.emmc_rx_strobe_cntl" = "0x01515"
 
 	# GPE configuration
 	register "pmc_gpe0_dw0" = "GPP_A"
@@ -119,6 +170,8 @@ chip soc/intel/alderlake
 	register "pch_hda_idisp_link_tmode" = "HDA_TMODE_8T"
 	register "pch_hda_idisp_link_frequency" = "HDA_LINKFREQ_96MHZ"
 	register "pch_hda_idisp_codec_enable" = "1"
+
+	register "vccin_aux_imon_iccmax" = "PD_TIER_VOLUME" # 27A
 
 	# Enable CNVi BT Audio offload
 	register "cnvi_bt_audio_offload" = "1"
@@ -491,6 +544,44 @@ chip soc/intel/alderlake
 				end
 			end
 			chip drivers/i2c/hid
+				register "generic.hid" = ""GTH1563""
+				register "generic.desc" = ""G2TOUCH Touchscreen""
+				register "generic.irq" = "ACPI_IRQ_LEVEL_LOW(GPP_E11_IRQ)"
+				register "generic.detect" = "1"
+				register "generic.reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C1)"
+				register "generic.reset_delay_ms" = "70"
+				register "generic.reset_off_delay_ms" = "2"
+				register "generic.stop_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C4)"
+				register "generic.stop_delay_ms" = "280"
+				register "generic.stop_off_delay_ms" = "2"
+				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
+				register "generic.enable_delay_ms" = "1"
+				register "generic.has_power_resource" = "1"
+				register "hid_desc_reg_offset" = "0x01"
+				device i2c 10 on
+					probe TOUCH_PANEL TOUCH_GTH1563_TOP
+				end
+			end
+			chip drivers/i2c/hid
+				register "generic.hid" = ""GTH7503""
+				register "generic.desc" = ""G2TOUCH Touchscreen""
+				register "generic.irq" = "ACPI_IRQ_LEVEL_LOW(GPP_E11_IRQ)"
+				register "generic.detect" = "1"
+				register "generic.reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C1)"
+				register "generic.reset_delay_ms" = "70"
+				register "generic.reset_off_delay_ms" = "2"
+				register "generic.stop_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C4)"
+				register "generic.stop_delay_ms" = "280"
+				register "generic.stop_off_delay_ms" = "2"
+				register "generic.enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_C0)"
+				register "generic.enable_delay_ms" = "1"
+				register "generic.has_power_resource" = "1"
+				register "hid_desc_reg_offset" = "0x01"
+				device i2c 10 on
+					probe TOUCH_PANEL TOUCH_GTH7503_TOP
+				end
+			end
+			chip drivers/i2c/hid
 				register "generic.hid" = ""ELAN2513""
 				register "generic.desc" = ""ELAN Touchscreen""
 				register "generic.irq" = "ACPI_IRQ_LEVEL_LOW(GPP_E11_IRQ)"
@@ -535,7 +626,16 @@ chip soc/intel/alderlake
 			chip drivers/intel/ish
 				register "firmware_name" = ""kaladin_ish.bin""
 				register "add_acpi_dma_property" = "true"
-				device generic 0 on end
+				device generic 0 on
+					probe TABLET_MODE TABLET_MODE_PRESENT
+				end
+			end
+			chip drivers/intel/ish
+				register "firmware_name" = ""lite_ish.bin""
+				register "add_acpi_dma_property" = "true"
+				device generic 0 on
+					probe TABLET_MODE TABLET_MODE_ABSENT
+				end
 			end
 		end
 		device ref ufs on

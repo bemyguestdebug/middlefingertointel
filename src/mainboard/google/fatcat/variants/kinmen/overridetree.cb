@@ -3,8 +3,9 @@ fw_config
 		option WIFI_CNVI_7		0
 	end
 	field AUDIO 3 5
-		option AUDIO_UNKNOWN		0
-		option AUDIO_ALC721_SNDW	1
+		option AUDIO_UNKNOWN				0
+		option AUDIO_ALC721_SNDW			1
+		option AUDIO_ALC1320_ALC721_SNDW	2
 	end
 	field FPMCU 6 7
 		option FP_ABSENT		0
@@ -22,13 +23,13 @@ chip soc/intel/pantherlake
 	# The initial version temporarily uses the PTL-H,
 	# but the thermal design is based on the PTL-U.
 	# Apply PTL-U's thermal settings here to avoid thermal issues.
-	register "power_limits_config[PTL_H_1_CORE]" = "{
+	register "power_limits_config[PTL_CORE_3]" = "{
 		.tdp_pl1_override = 15,
 		.tdp_pl2_override = 55,
 		.tdp_pl4 = 152,
 	}"
 
-	register "power_limits_config[PTL_H_2_CORE]" = "{
+	register "power_limits_config[PTL_CORE_4]" = "{
 		.tdp_pl1_override = 15,
 		.tdp_pl2_override = 55,
 		.tdp_pl4 = 152,
@@ -119,6 +120,99 @@ chip soc/intel/pantherlake
 				register "device[3].use_pld" = "true"
 				register "device[3].pld" = "ACPI_PLD_TYPE_C(LEFT, RIGHT, ACPI_PLD_GROUP(2, 1))"
 				device generic 0 on end
+			end
+		end
+
+		device ref dtt on
+			chip drivers/intel/dptf
+				## sensor information
+				register "options.tsr[0].desc" = ""DDR_SOC""
+				register "options.tsr[1].desc" = ""Ambient""
+				register "options.tsr[2].desc" = ""Charger""
+
+				## Active Policy
+				# FIXME: below values are initial reference values only
+				register "policies.active" = "{
+						[0] = {
+							.target = DPTF_TEMP_SENSOR_0,
+							.thresholds = {
+									TEMP_PCT(70, 97),
+									TEMP_PCT(65, 90),
+									TEMP_PCT(60, 80),
+									TEMP_PCT(55, 75),
+									TEMP_PCT(50, 65),
+									TEMP_PCT(45, 45),
+									TEMP_PCT(43, 30),
+								}
+							},
+						[1] = {
+							.target = DPTF_TEMP_SENSOR_1,
+							.thresholds = {
+									TEMP_PCT(70, 97),
+									TEMP_PCT(65, 90),
+									TEMP_PCT(60, 80),
+									TEMP_PCT(55, 75),
+									TEMP_PCT(50, 65),
+									TEMP_PCT(45, 45),
+									TEMP_PCT(43, 30),
+								}
+							},
+						[2] = {
+							.target = DPTF_TEMP_SENSOR_2,
+							.thresholds = {
+									TEMP_PCT(75, 90),
+									TEMP_PCT(70, 80),
+									TEMP_PCT(65, 70),
+									TEMP_PCT(60, 50),
+								}
+							}
+				}"
+
+				## Passive Policy
+				# TODO: below values are initial reference values only
+				register "policies.passive" = "{
+						[0] = DPTF_PASSIVE(CPU,         CPU,           95, 5000),
+						[1] = DPTF_PASSIVE(CPU,         TEMP_SENSOR_0, 80, 5000),
+						[2] = DPTF_PASSIVE(CPU,         TEMP_SENSOR_1, 80, 5000),
+						[3] = DPTF_PASSIVE(CHARGER,     TEMP_SENSOR_2, 75, 5000),
+				}"
+
+				## Critical Policy
+				# TODO: below values are initial reference values only
+				register "policies.critical" = "{
+						[0] = DPTF_CRITICAL(CPU,          105, SHUTDOWN),
+						[1] = DPTF_CRITICAL(TEMP_SENSOR_0, 85, SHUTDOWN),
+						[2] = DPTF_CRITICAL(TEMP_SENSOR_1, 85, SHUTDOWN),
+						[3] = DPTF_CRITICAL(TEMP_SENSOR_2, 85, SHUTDOWN),
+				}"
+
+				## Power Limits Control
+				register "controls.power_limits" = "{
+						.pl1 = {
+							.min_power = 12000,
+							.max_power = 15000,
+							.time_window_min = 28 * MSECS_PER_SEC,
+							.time_window_max = 32 * MSECS_PER_SEC,
+							.granularity = 200,
+						},
+						.pl2 = {
+							.min_power = 55000,
+							.max_power = 55000,
+							.time_window_min = 28 * MSECS_PER_SEC,
+							.time_window_max = 32 * MSECS_PER_SEC,
+							.granularity = 1000,
+						}
+				}"
+
+				## Charger Performance Control (Control, mA)
+				register "controls.charger_perf" = "{
+						[0] = { 255, 3000 },
+						[1] = {  24, 1500 },
+						[2] = {  16, 1000 },
+						[3] = {   8,  500 }
+				}"
+
+				device generic 0 alias dptf_policy on end
 			end
 		end
 
@@ -374,6 +468,7 @@ chip soc/intel/pantherlake
 		device ref smbus on end
 		device ref hda on
 			probe AUDIO AUDIO_ALC721_SNDW
+			probe AUDIO AUDIO_ALC1320_ALC721_SNDW
 			chip drivers/intel/soundwire
 				device generic 0 on
 					chip drivers/soundwire/alc711
@@ -384,7 +479,18 @@ chip soc/intel/pantherlake
 						# SoundWire Link 3 ID 1
 						device generic 3.1 on
 							probe AUDIO AUDIO_ALC721_SNDW
+							probe AUDIO AUDIO_ALC1320_ALC721_SNDW
 						end
+					end
+					chip drivers/soundwire/alc1320
+						register "desc" = ""Speaker Amp""
+						register "alc1320_address.version" = "SOUNDWIRE_VERSION_1_2"
+						register "alc1320_address.class" = "MIPI_CLASS_SDCA"
+						register "alc1320_address.part_id" = "MIPI_DEV_ID_REALTEK_ALC1320"
+						# SoundWire Link 3 ID 2
+						device generic 3.2 on
+							probe AUDIO AUDIO_ALC1320_ALC721_SNDW
+						end # ALC1320 Smart Amp
 					end
 				end
 			end

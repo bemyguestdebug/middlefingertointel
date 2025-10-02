@@ -3,8 +3,18 @@ fw_config
 		option WIFI_CNVI_7		0
 	end
 	field AUDIO 3 5
-		option AUDIO_UNKNOWN		0
-		option AUDIO_ALC721_SNDW	1
+		option AUDIO_UNKNOWN				0
+		option AUDIO_ALC721_SNDW			1
+		option AUDIO_ALC1320_ALC721_SNDW	2
+	end
+	field FPMCU 6 7
+		option FP_ABSENT		0
+		option FP_SPI			1
+		option FP_USB			2
+	end
+	field IO_PORT 12 12
+		option USB2A2C_HDMI		0
+		option USB3C			1
 	end
 end
 
@@ -13,13 +23,13 @@ chip soc/intel/pantherlake
 	# The initial version temporarily uses the PTL-H,
 	# but the thermal design is based on the PTL-U.
 	# Apply PTL-U's thermal settings here to avoid thermal issues.
-	register "power_limits_config[PTL_H_1_CORE]" = "{
+	register "power_limits_config[PTL_CORE_3]" = "{
 		.tdp_pl1_override = 15,
 		.tdp_pl2_override = 55,
 		.tdp_pl4 = 152,
 	}"
 
-	register "power_limits_config[PTL_H_2_CORE]" = "{
+	register "power_limits_config[PTL_CORE_4]" = "{
 		.tdp_pl1_override = 15,
 		.tdp_pl2_override = 55,
 		.tdp_pl4 = 152,
@@ -38,6 +48,7 @@ chip soc/intel/pantherlake
 	register "tcss_ports[2]" = "TCSS_PORT_DEFAULT(OC_SKIP)" # USB3_C1
 
 	register "tcss_cap_policy[0]" = "TCSS_TYPE_C_PORT_FULL_FUN"
+	register "tcss_cap_policy[1]" = "TCSS_TYPE_C_PORT_FULL_FUN"
 	register "tcss_cap_policy[2]" = "TCSS_TYPE_C_PORT_FULL_FUN"
 	register "tcss_cap_policy[3]" = "TCSS_TYPE_C_PORT_FULL_FUN"
 
@@ -114,7 +125,12 @@ chip soc/intel/pantherlake
 
 		device ref iaa off end
 		device ref tbt_pcie_rp0 on end
-		device ref tbt_pcie_rp2 on end
+		device ref tbt_pcie_rp1 on
+			probe IO_PORT USB3C
+		end
+		device ref tbt_pcie_rp2 on
+			probe IO_PORT USB2A2C_HDMI
+		end
 		device ref tbt_pcie_rp3 on end
 		device ref tcss_xhci on
 			chip drivers/usb/acpi
@@ -126,10 +142,28 @@ chip soc/intel/pantherlake
 						device ref tcss_usb3_port0 on end
 					end
 					chip drivers/usb/acpi
+						register "desc" = ""USB3 Type-C Port C2""
+						register "type" = "UPC_TYPE_C_USB2_SS_SWITCH"
+						register "group" = "ACPI_PLD_GROUP(3, 2)"
+						device ref tcss_usb3_port1 on
+							probe IO_PORT USB3C
+						end
+					end
+					chip drivers/usb/acpi
 						register "desc" = ""USB3 Type-C Port C1""
 						register "type" = "UPC_TYPE_C_USB2_SS_SWITCH"
 						register "group" = "ACPI_PLD_GROUP(2, 2)"
-						device ref tcss_usb3_port2 on end
+						device ref tcss_usb3_port2 on
+							probe IO_PORT USB2A2C_HDMI
+						end
+					end
+					chip drivers/usb/acpi
+						register "desc" = ""USB3 Type-C Port C1""
+						register "type" = "UPC_TYPE_C_USB2_SS_SWITCH"
+						register "group" = "ACPI_PLD_GROUP(2, 2)"
+						device ref tcss_usb3_port3 on
+							probe IO_PORT USB3C
+						end
 					end
 				end
 			end
@@ -146,7 +180,16 @@ chip soc/intel/pantherlake
 			chip drivers/intel/usb4/retimer
 				register "dfp[0].power_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_B21)"
 				use tcss_usb3_port2 as dfp[0].typec_port
-				device generic 0 on end
+				device generic 0 on
+					probe IO_PORT USB2A2C_HDMI
+				end
+			end
+			chip drivers/intel/usb4/retimer
+				register "dfp[0].power_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_B21)"
+				use tcss_usb3_port3 as dfp[0].typec_port
+				device generic 0 on
+					probe IO_PORT USB3C
+				end
 			end
 		end
 
@@ -173,6 +216,14 @@ chip soc/intel/pantherlake
 						device ref usb2_port2 on end
 					end
 					chip drivers/usb/acpi
+						register "desc" = ""USB2 Type-C Port C2""
+						register "type" = "UPC_TYPE_C_USB2_SS_SWITCH"
+						register "group" = "ACPI_PLD_GROUP(3, 1)"
+						device ref usb2_port5 on
+							probe IO_PORT USB3C
+						end
+					end
+					chip drivers/usb/acpi
 						register "desc" = ""USB2 Camera""
 						register "type" = "UPC_TYPE_INTERNAL"
 						register "has_power_resource" = "true"
@@ -183,25 +234,42 @@ chip soc/intel/pantherlake
 						register "desc" = ""USB2 Type-A Port 0""
 						register "type" = "UPC_TYPE_A"
 						register "group" = "ACPI_PLD_GROUP(3, 1)"
-						device ref usb2_port5 on end
+						device ref usb2_port5 on
+							probe IO_PORT USB2A2C_HDMI
+						end
 					end
 					chip drivers/usb/acpi
 						register "desc" = ""USB2 Type-A Port 1""
 						register "type" = "UPC_TYPE_A"
 						register "group" = "ACPI_PLD_GROUP(4, 1)"
-						device ref usb2_port6 on end
+						device ref usb2_port6 on
+							probe IO_PORT USB2A2C_HDMI
+						end
+					end
+					chip drivers/usb/acpi
+						register "desc" = ""USB2 FPMCU""
+						register "type" = "UPC_TYPE_INTERNAL"
+						register "has_power_resource" = "true"
+						register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_E19)"
+						device ref usb2_port6 on
+							probe FPMCU FP_USB
+						end
 					end
 					chip drivers/usb/acpi
 						register "desc" = ""USB3 Type-A Port 0""
 						register "type" = "UPC_TYPE_USB3_A"
 						register "group" = "ACPI_PLD_GROUP(3, 2)"
-						device ref usb3_port1 on end
+						device ref usb3_port1 on
+							probe IO_PORT USB2A2C_HDMI
+						end
 					end
 					chip drivers/usb/acpi
 						register "desc" = ""USB3 Type-A Port 1""
 						register "type" = "UPC_TYPE_USB3_A"
 						register "group" = "ACPI_PLD_GROUP(4, 2)"
-						device ref usb3_port2 on end
+						device ref usb3_port2 on
+							probe IO_PORT USB2A2C_HDMI
+						end
 					end
 				end
 			end
@@ -285,6 +353,7 @@ chip soc/intel/pantherlake
 			end
 		end # I2C5
 		device ref gspi0 on
+			probe FPMCU FP_SPI
 			chip drivers/spi/acpi
 				register "name" = ""CRFP""
 				register "hid" = "ACPI_DT_NAMESPACE_HID"
@@ -297,13 +366,16 @@ chip soc/intel/pantherlake
 				register "reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_C15)"
 				register "enable_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_HIGH(GPP_E19)"
 				register "enable_delay_ms" = "3"
-				device spi 0 on end
+				device spi 0 on
+					probe FPMCU FP_SPI
+				end
 			end
 		end
 
 		device ref smbus on end
 		device ref hda on
 			probe AUDIO AUDIO_ALC721_SNDW
+			probe AUDIO AUDIO_ALC1320_ALC721_SNDW
 			chip drivers/intel/soundwire
 				device generic 0 on
 					chip drivers/soundwire/alc711
@@ -314,7 +386,18 @@ chip soc/intel/pantherlake
 						# SoundWire Link 3 ID 1
 						device generic 3.1 on
 							probe AUDIO AUDIO_ALC721_SNDW
+							probe AUDIO AUDIO_ALC1320_ALC721_SNDW
 						end
+					end
+					chip drivers/soundwire/alc1320
+						register "desc" = ""Speaker Amp""
+						register "alc1320_address.version" = "SOUNDWIRE_VERSION_1_2"
+						register "alc1320_address.class" = "MIPI_CLASS_SDCA"
+						register "alc1320_address.part_id" = "MIPI_DEV_ID_REALTEK_ALC1320"
+						# SoundWire Link 3 ID 2
+						device generic 3.2 on
+							probe AUDIO AUDIO_ALC1320_ALC721_SNDW
+						end # ALC1320 Smart Amp
 					end
 				end
 			end

@@ -1,16 +1,54 @@
+fw_config
+	field WIFI 2 3
+		option WIFI_CNVI_7		0
+		option WIFI_CNVI_7E		1
+	end
+	field TOUCHSCREEN 4 5
+		option NONE_TOUCH	0
+		option 14_TOUCH		1
+	end
+	field TOUCHPAD 6 7
+		option TOUCHPAD_UNKNOWN		0
+		option TOUCHPAD_LPSS_I2C	1
+		option TOUCHPAD_THC_I2C		2
+	end
+	field STORAGE 8 9
+		option STORAGE_UNKNOWN		0
+		option STORAGE_NVME_GEN4	1
+		option STORAGE_NVME_GEN5	2
+		option STORAGE_UFS		3
+	end
+	field KB 10 11
+		option KB_UNKNOWN	0
+		option KB_BL		1
+	end
+	field UFC 12 13
+		option UFC_UNKNOWN	0
+		option UFC_1080P	1
+	end
+	field FP 14 15
+		option FP_ABSENT	0
+		option FP_PRESENT	1
+	end
+	field STYLUS 16 16
+		option STYLUS_ABSENT	0
+		option STYLUS_PRESENT	1
+	end
+end
+
 chip soc/intel/pantherlake
 
-	register "power_limits_config[PTL_U_1_CORE]" = "{
+	register "power_limits_config[PTL_CORE_1]" = "{
 		.tdp_pl1_override = 15,
 		.tdp_pl2_override = 25,
 	}"
 
-	register "power_limits_config[PTL_H_1_CORE]" = "{
+	register "power_limits_config[PTL_CORE_3]" = "{
 		.tdp_pl1_override = 25,
 		.tdp_pl2_override = 25,
 	}"
 
-	register "power_limits_config[PTL_H_2_CORE]" = "{
+	register "power_limits_config[PTL_CORE_4]" = "{
 		.tdp_pl1_override = 25,
 		.tdp_pl2_override = 25,
 	}"
@@ -57,6 +95,7 @@ chip soc/intel/pantherlake
 	register "common_soc_config" = "{
 		.logo_valignment = FW_SPLASH_VALIGNMENT_MIDDLE,
 		.i2c[3] = {
+			.early_init=1,
 			.speed = I2C_SPEED_FAST,
 		},
 	}"
@@ -65,10 +104,11 @@ chip soc/intel/pantherlake
 		device ref dtt on
 			chip drivers/intel/dptf
 				## sensor information
-				register "options.tsr[0].desc" = ""DDR_SOC""
-				register "options.tsr[1].desc" = ""Ambient""
-				register "options.tsr[2].desc" = ""Charger""
-				register "options.tsr[3].desc" = ""wwan""
+				register "options.tsr[0].desc" = ""VR""
+				register "options.tsr[1].desc" = ""DDR""
+				register "options.tsr[2].desc" = ""Top""
+				register "options.tsr[3].desc" = ""SSD""
+				register "options.tsr[4].desc" = ""Charger""
 
 				## Active Policy
 				# FIXME: below values are initial reference values only
@@ -117,6 +157,18 @@ chip soc/intel/pantherlake
 									TEMP_PCT(50, 40),
 									TEMP_PCT(45, 30),
 								}
+							},
+						[4] = {
+							.target = DPTF_TEMP_SENSOR_4,
+							.thresholds = {
+									TEMP_PCT(75, 90),
+									TEMP_PCT(70, 80),
+									TEMP_PCT(65, 70),
+									TEMP_PCT(60, 60),
+									TEMP_PCT(55, 50),
+									TEMP_PCT(50, 40),
+									TEMP_PCT(45, 30),
+								}
 							}
 				}"
 
@@ -128,16 +180,18 @@ chip soc/intel/pantherlake
 						[2] = DPTF_PASSIVE(CPU,         TEMP_SENSOR_1, 80, 5000),
 						[3] = DPTF_PASSIVE(CHARGER,     TEMP_SENSOR_2, 75, 5000),
 						[4] = DPTF_PASSIVE(CPU,         TEMP_SENSOR_3, 80, 5000),
+						[5] = DPTF_PASSIVE(CPU,         TEMP_SENSOR_4, 80, 5000),
 				}"
 
 				## Critical Policy
 				# TODO: below values are initial reference values only
 				register "policies.critical" = "{
 						[0] = DPTF_CRITICAL(CPU,          105, SHUTDOWN),
-						[1] = DPTF_CRITICAL(TEMP_SENSOR_0, 85, SHUTDOWN),
-						[2] = DPTF_CRITICAL(TEMP_SENSOR_1, 85, SHUTDOWN),
-						[3] = DPTF_CRITICAL(TEMP_SENSOR_2, 85, SHUTDOWN),
-						[4] = DPTF_CRITICAL(TEMP_SENSOR_3, 85, SHUTDOWN),
+						[1] = DPTF_CRITICAL(TEMP_SENSOR_0, 91, SHUTDOWN),
+						[2] = DPTF_CRITICAL(TEMP_SENSOR_1, 91, SHUTDOWN),
+						[3] = DPTF_CRITICAL(TEMP_SENSOR_2, 91, SHUTDOWN),
+						[4] = DPTF_CRITICAL(TEMP_SENSOR_3, 91, SHUTDOWN),
+						[5] = DPTF_CRITICAL(TEMP_SENSOR_4, 91, SHUTDOWN),
 				}"
 
 				## Power Limits Control
@@ -315,6 +369,8 @@ chip soc/intel/pantherlake
 		end
 
 		device ref pcie_rp9 on
+			probe STORAGE STORAGE_UNKNOWN
+			probe STORAGE STORAGE_NVME_GEN4
 			register "pcie_rp[PCIE_RP(9)]" = "{
 			.clk_src = 0,
 			.clk_req = 0,
@@ -328,6 +384,8 @@ chip soc/intel/pantherlake
 		end # Gen4 SSD
 
 		device ref cnvi_wifi on
+			probe WIFI WIFI_CNVI_7
+			probe WIFI WIFI_CNVI_7E
 			chip drivers/wifi/generic
 				register "wake" = "GPE0_PME_B0"
 				register "add_acpi_dma_property" = "true"
@@ -337,7 +395,10 @@ chip soc/intel/pantherlake
 			end
 		end # CNVi
 
-		device ref cnvi_bluetooth on end
+		device ref cnvi_bluetooth on
+			probe WIFI WIFI_CNVI_7
+			probe WIFI WIFI_CNVI_7E
+		end
 
 		device ref thc0 on
 			register "thc_wake_on_touch[0]" = "true"

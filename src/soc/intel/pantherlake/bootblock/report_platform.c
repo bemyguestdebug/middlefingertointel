@@ -20,10 +20,8 @@ static struct {
 	u32 cpuid;
 	const char *name;
 } cpu_table[] = {
-	{ CPUID_PANTHERLAKE_A0, "Pantherlake A0" },
-	{ CPUID_PANTHERLAKE_B0_1, "Pantherlake B0" },
-	{ CPUID_PANTHERLAKE_B0_2, "Pantherlake B0" },
-	{ CPUID_WILDCATLAKE_A0, "Wildcatlake A0" },
+	{ CPUID_PANTHERLAKE, "Pantherlake" },
+	{ CPUID_WILDCATLAKE, "Wildcatlake" },
 };
 
 static struct {
@@ -44,6 +42,8 @@ static struct {
 	{ PCI_DID_INTEL_WCL_ID_1, "Wildcatlake" },
 	{ PCI_DID_INTEL_WCL_ID_2, "Wildcatlake" },
 	{ PCI_DID_INTEL_WCL_ID_3, "Wildcatlake" },
+	{ PCI_DID_INTEL_WCL_ID_4, "Wildcatlake" },
+	{ PCI_DID_INTEL_WCL_ID_5, "Wildcatlake" },
 };
 
 static struct {
@@ -51,9 +51,9 @@ static struct {
 	const char *name;
 } pch_table[] = {
 	{ PCI_DID_INTEL_PTL_U_H_ESPI_0, "Pantherlake SOC-UH" },
-	{ PCI_DID_INTEL_PTL_U_H_ESPI_1, "Pantherlake SOC-UH SuperSKU" },
-	{ PCI_DID_INTEL_PTL_U_H_ESPI_2, "Pantherlake SOC-UH Premium" },
-	{ PCI_DID_INTEL_PTL_U_H_ESPI_3, "Pantherlake SOC-UH Base" },
+	{ PCI_DID_INTEL_PTL_U_H_ESPI_1, "Pantherlake SOC-UH" },
+	{ PCI_DID_INTEL_PTL_U_H_ESPI_2, "Pantherlake SOC-UH" },
+	{ PCI_DID_INTEL_PTL_U_H_ESPI_3, "Pantherlake SOC-UH" },
 	{ PCI_DID_INTEL_PTL_U_H_ESPI_4, "Pantherlake SOC-UH" },
 	{ PCI_DID_INTEL_PTL_U_H_ESPI_5, "Pantherlake SOC-UH" },
 	{ PCI_DID_INTEL_PTL_U_H_ESPI_6, "Pantherlake SOC-UH" },
@@ -83,9 +83,9 @@ static struct {
 	{ PCI_DID_INTEL_PTL_U_H_ESPI_30, "Pantherlake SOC-UH" },
 	{ PCI_DID_INTEL_PTL_U_H_ESPI_31, "Pantherlake SOC-UH" },
 	{ PCI_DID_INTEL_PTL_H_ESPI_0, "Pantherlake SOC-H" },
-	{ PCI_DID_INTEL_PTL_H_ESPI_1, "Pantherlake SOC-H SuperSKU" },
-	{ PCI_DID_INTEL_PTL_H_ESPI_2, "Pantherlake SOC-H Premium" },
-	{ PCI_DID_INTEL_PTL_H_ESPI_3, "Pantherlake SOC-H Base" },
+	{ PCI_DID_INTEL_PTL_H_ESPI_1, "Pantherlake SOC-H" },
+	{ PCI_DID_INTEL_PTL_H_ESPI_2, "Pantherlake SOC-H" },
+	{ PCI_DID_INTEL_PTL_H_ESPI_3, "Pantherlake SOC-H" },
 	{ PCI_DID_INTEL_PTL_H_ESPI_4, "Pantherlake SOC-H" },
 	{ PCI_DID_INTEL_PTL_H_ESPI_5, "Pantherlake SOC-H" },
 	{ PCI_DID_INTEL_PTL_H_ESPI_6, "Pantherlake SOC-H" },
@@ -184,7 +184,7 @@ static void report_cpu_info(void)
 
 	/* Look for string to match the name */
 	for (i = 0; i < ARRAY_SIZE(cpu_table); i++) {
-		if (cpu_table[i].cpuid == cpu_id) {
+		if (cpuid_match(cpu_table[i].cpuid, cpu_id, CPUID_ALL_STEPPINGS_MASK)) {
 			cpu_type = cpu_table[i].name;
 			break;
 		}

@@ -43,17 +43,17 @@ end
 
 chip soc/intel/pantherlake
 
-	register "power_limits_config[PTL_U_1_CORE]" = "{
+	register "power_limits_config[PTL_CORE_1]" = "{
 		.tdp_pl1_override = 15,
 		.tdp_pl2_override = 25,
 	}"
 
-	register "power_limits_config[PTL_H_1_CORE]" = "{
+	register "power_limits_config[PTL_CORE_3]" = "{
 		.tdp_pl1_override = 25,
 		.tdp_pl2_override = 25,
 	}"
 
-	register "power_limits_config[PTL_H_2_CORE]" = "{
+	register "power_limits_config[PTL_CORE_4]" = "{
 		.tdp_pl1_override = 25,
 		.tdp_pl2_override = 25,
 	}"
@@ -225,13 +225,19 @@ device ref tbt_pcie_rp0 on end
 			chip soc/intel/common/block/pcie/rtd3
 				register "reset_gpio" = "ACPI_GPIO_OUTPUT_ACTIVE_LOW(GPP_A11)"
 				register "srcclk_pin" = "4"
-				device pci 00.0 on end
+				device generic 0 on
+					probe WIFI WIFI_PCIE_6
+					probe WIFI WIFI_PCIE_7
+				end
 			end
 			chip drivers/wifi/generic
 				register "add_acpi_dma_property" = "true"
 				register "wake" = "GPE0_DW0_12" # GPP_A12
 				use usb2_port7 as bluetooth_companion
-				device pci 00.0 on end
+				device pci 00.0 on
+					probe WIFI WIFI_PCIE_6
+					probe WIFI WIFI_PCIE_7
+				end
 			end
 		end #  WLAN
 
