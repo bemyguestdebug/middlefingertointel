@@ -125,6 +125,7 @@ endif
 
 romstage-$(CONFIG_GENERIC_UDELAY) += timer.c
 
+ramstage-y += hardened_malloc.c
 ramstage-$(CONFIG_PROBE_RAM) += ramdetect.c
 ramstage-y += prog_loaders.c
 ramstage-y += prog_ops.c
