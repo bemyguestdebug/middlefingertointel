@@ -286,3 +286,10 @@ config HAVE_EARLY_POWEROFF_SUPPORT
 	  necessary hardware operations to initiate an early power off sequence.
 	  This might involve configuring hardware registers, sending commands to
 	  power management controllers, or other platform-specific operations.
+
+config HARDENED_MALLOC
+	bool "Enable hardened malloc"
+	default n
+	help
+	  Replaces malloc/free with hardened versions that use guard canaries.
+
