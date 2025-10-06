@@ -1,13 +1,8 @@
-
 #ifndef HARDENED_MALLOC_H
 #define HARDENED_MALLOC_H
 
-
+#include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <console/console.h>
-#include <cbmem.h>
 
 #define MAX_HARDENED_ALLOCATIONS 128
 #define CANARY_VALUE 0xBADC0DE
@@ -18,12 +13,8 @@ typedef struct {
     size_t size;
 } alloc_entry_t;
 
-static alloc_entry_t alloc_table[MAX_HARDENED_ALLOCATIONS];
-
-static void check_canary(void *ptr);
-void hardened_free(void *ptr);
+// Only expose the functions meant to be called outside
 void *hardened_malloc(size_t size);
-static inline void write_canary(void *ptr);
-static inline uint32_t read_canary(void *ptr);
+void hardened_free(void *ptr);
 
 #endif // HARDENED_MALLOC_H
